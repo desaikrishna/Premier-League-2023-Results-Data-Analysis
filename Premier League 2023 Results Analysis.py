@@ -189,3 +189,73 @@ most_home_losses_df.show()
 pl_results_df.select("fixture_id","fixture_date","teams_home_name")\
 .where("teams_home_name == 'Manchester City' and teams_home_winner == true")\
 .show(10)
+
+
+# COMMAND ----------
+
+#6 Games that ended in a draw
+pl_results_df.filter((pl_results_df.teams_home_winner.isNull())& (pl_results_df.teams_away_winner.isNull())).count()
+
+# COMMAND ----------
+
+#7 Games where more than 5 goals were scored by home team and 0 by away team
+pl_results_df.filter((pl_results_df.goals_home > 5 )& (pl_results_df.goals_away == 0)).show()
+
+# COMMAND ----------
+
+pl_home_team_stats_df.select("home_team_id","home_team_name").show(5)
+
+# COMMAND ----------
+
+#for filter based functions check this link : sparkbyexamples
+
+# COMMAND ----------
+
+#8
+pl_results_df.join(pl_home_team_stats_df, pl_home_team_stats_df.fixture_id == pl_results_df.fixture_id, "inner").where("teams_home_name='Chelsea' and teams_away_name='Manchester City'").select("teams_home_name","teams_away_name","Shots_On_Goal").show(2)
+
+# COMMAND ----------
+
+#dbutils.fs.help()
+#dbutils.notebook.help()
+#dbutils.widgets.help()
+#dbutils.secrets.help()
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables")
+#dbutils.fs.head("/FileStore/tables/2023_home_teams_stats.csv")
+#COPY, MKDIRS, MV, PUT, RM
+
+# COMMAND ----------
+
+#9 Storing in Parquet format
+pl_results_df.write.parquet("/FileStore/tables/2023_matchday_results-1.parquet")
+
+# COMMAND ----------
+
+# Retrieving parquet format
+p_df = spark.read.parquet("/FileStore/tables/2023_matchday_results-1.parquet")
+
+# COMMAND ----------
+
+#p_df.count()
+pl_results_df.printSchema()
+
+# COMMAND ----------
+
+#10
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+from pyspark.sql import SparkSession
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("JSON Creation").getOrCreate()
+
+# Define the PySpark DataFrame schema
+schema = StructType([
+    StructField("name", StringType()),
+    StructField("age", IntegerType()),
+    StructField("city", StringType())
+])
+
