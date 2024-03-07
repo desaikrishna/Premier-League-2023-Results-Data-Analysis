@@ -259,3 +259,74 @@ schema = StructType([
     StructField("city", StringType())
 ])
 
+# Create a PySpark DataFrame
+data = [("Shyam", 25, "New York"),
+        ("Ram", 30, "San Francisco")]
+df = spark.createDataFrame(data, schema)
+
+# Convert the PySpark DataFrame to a JSON string
+json_string = df.toJSON().collect()
+
+pl_result_json = pl_results_df.toJSON().collect()[0]
+
+print(pl_result_json)
+
+# COMMAND ----------
+
+#11 Total goals scored by each teams when played at home stadium
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+#pl_results_df.groupBy("teams_home_name").agg(avg("goals_home")).orderBy("teams_home_name").collect()
+pl_results_df.groupBy("teams_home_name").agg((sum("goals_home")+sum("goals_away")).alias("total Goal Scored")).orderBy("teams_home_name").show()
+
+
+# COMMAND ----------
+
+#12
+pl_results_df.alias("pl_results").join(
+pl_home_team_stats_df.alias("home_team_stats"),col("pl_results.fixture_id") == col("home_team_stats.fixture_id"),
+"inner").select("home_team_stats.fixture_id","pl_results.teams_home_name","pl_results.teams_away_name").show(5)
+
+# COMMAND ----------
+
+#13 Total shots taken by each teams in entire season when playing at home
+pl_results_df.alias("pl_results") \
+.join(pl_home_team_stats_df.alias("home_team_stats") \
+      ,col("pl_results.fixture_id") == col("home_team_stats.fixture_id"), \
+      "inner") \
+      .groupBy("pl_results.teams_home_name") \
+      .agg(sum(pl_home_team_stats_df.Total_Shots).alias("total_shots")) \
+      .show()
+
+# COMMAND ----------
+
+#14
+pl_results_df.alias("pl_results").join(
+pl_home_team_stats_df.alias("home_team_stats"),col("pl_results.fixture_id") == col("home_team_stats.fixture_id"),
+"inner").select("home_team_stats.fixture_id","pl_results.teams_home_name","pl_results.teams_away_name").show(5)
+
+# COMMAND ----------
+
+#15 Total fould committed by each team in the entire season both home and away
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+result = pl_results_df.alias("pl_results") \
+.join(pl_home_team_stats_df.alias("home_team_stats") \
+      ,col("pl_results.fixture_id") == col("home_team_stats.fixture_id") \
+      ,"inner") \
+        .join(pl_away_teams_stats_df.alias("away_team_stats") \
+        ,col("away_team_stats.fixture_id")==col("pl_results.fixture_id") \
+        ,"inner") \
+      .groupBy("pl_results.teams_home_name") \
+     .agg((sum("home_team_stats.Fouls")+sum("away_team_stats.Fouls")).alias("Total_Fouls")) \
+      .orderBy("pl_results.teams_home_name").show()
+    #.withColumnRenamed("sum(home_team_stats.Fouls)+sum(away_team_stats.Fouls)","Total_Fouls").show()
+#result.printSchema()
+#result.select(col("sum(home_team_stats.Fouls) + sum(away_team_stats.Fouls)")).show()
+
+# COMMAND ----------
+
+#16 average goals scored by team playing at home, threshold be 1
+threshold=1
+result = pl_results_df.groupBy("teams_home_name").agg(avg("goals_home").alias("avg_goals")).filter(col("avg_goals") > threshold).orderBy(col("avg_goals").desc())
+result.show()
